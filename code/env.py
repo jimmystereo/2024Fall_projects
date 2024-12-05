@@ -42,4 +42,5 @@ for i in range(len(line)):
         max_time = line[i]
 for i in range(len(line)):
     time += i*line[i]
+
 time/10
