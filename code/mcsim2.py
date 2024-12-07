@@ -64,27 +64,39 @@ class Row:
 
 class Plane:
     def __init__(self, rows, seats_per_row, exits, speed_factor=0.8, door_opening_time=2,
-                 proportion_old=0.3, old_in_first_3_rows_prob=0.7, emergency_level=1.0):
+                 proportion_old=0.3, old_in_first_3_rows_prob=0.7, emergency_level=1.0, occupancy_rate=1.0):
         """
         Initializes a plane with a given number of rows, seats per row, exits, and optional blocked exit.
         Adds a speed factor for the first three rows and a door opening time for the middle exit.
         """
         self.proportion_old = proportion_old  # Proportion of old passengers
         self.old_in_first_3_rows_prob = old_in_first_3_rows_prob  # Probability that old passengers sit in the first 3 rows
-        self.rows = [Row(seats_per_row, idx, speed_factor if idx < 3 else 1, exits, emergency_level) for idx in range(rows)]
+        self.rows = []
         self.exits = exits
         self.door_opening_time = door_opening_time  # Time for middle exit door to open
-        self.line = self.generate_line(emergency_level)
         self.emergency_level = emergency_level  # Emergency level
+        self.occupancy_rate = occupancy_rate  # Fraction of seats occupied
+
+        # Adjust seats per row for the first three rows
+        for idx in range(rows):
+            current_seats_per_row = 2 if idx < 3 else seats_per_row
+            self.rows.append(Row(current_seats_per_row, idx, speed_factor if idx < 3 else 1, exits, emergency_level))
+
+        self.line = self.generate_line(emergency_level)
 
     def generate_line(self, emergency_level):
         """
         Generates a list of passengers with their assigned nearest exit and age.
         Includes a higher probability for old passengers to sit in the first 3 rows.
+        Only a proportion of seats are occupied based on the occupancy rate.
         """
         line = []
         for row_idx, row in enumerate(self.rows):
             for seat in row.seats:
+                # Only add passengers to seats based on occupancy rate
+                if random.random() > self.occupancy_rate:
+                    continue  # Skip this seat as it's unoccupied
+
                 # Randomly assign 'young' or 'old' based on the given proportion
                 age = 'old' if random.random() < self.proportion_old else 'young'
 
@@ -98,6 +110,7 @@ class Plane:
                 nearest_exit = min(self.exits, key=lambda exit_idx: abs(exit_idx - row_idx))
                 line.append((row_idx, nearest_exit, evac_time))
         return line
+
 
     def simulate_evacuation(self):
         """
@@ -130,19 +143,19 @@ class Plane:
         return total_time / len(self.line)
 
 
-def monte_carlo_simulation(rows=30, seats_per_row=6, exits=[0, 15, 29], speed_factor=0.8, door_opening_time=2, num_simulations=1000,
-                           proportion_old=0.3, old_in_first_3_rows_prob=0.7, emergency_level=1.0):
+def monte_carlo_simulation(rows=30, seats_per_row=6, exits=[0, 15, 29], speed_factor=0.8, door_opening_time=2,
+                           num_simulations=1000, proportion_old=0.3, old_in_first_3_rows_prob=0.7,
+                           emergency_level=1.0, occupancy_rate=1.0):
     """
-    Runs the Monte Carlo simulation for plane evacuation.
+    Runs the Monte Carlo simulation for plane evacuation with a controlled occupancy rate.
     """
     evacuation_times = []
     for _ in range(num_simulations):
-        plane = Plane(rows, seats_per_row, exits, speed_factor, door_opening_time, proportion_old, old_in_first_3_rows_prob, emergency_level)
+        plane = Plane(rows, seats_per_row, exits, speed_factor, door_opening_time, proportion_old,
+                      old_in_first_3_rows_prob, emergency_level, occupancy_rate)
         evacuation_times.append(plane.simulate_evacuation())
     return evacuation_times
 
-
-# Run the simulation
 def main():
     rows = 30           # Number of rows in the plane
     seats_per_row = 6   # Seats per row (standard economy configuration)
@@ -153,9 +166,10 @@ def main():
     proportion_old = 0.3  # 30% old passengers
     old_in_first_3_rows_prob = 0.6  # 70% chance for old passengers to sit in the first 3 rows
     emergency_level = 0.9  # Emergency level: 0.0 (low) to 1.0 (high)
+    occupancy_rate = 0.8  # 80% of seats are occupied
 
     evacuation_times = monte_carlo_simulation(rows, seats_per_row, exits, speed_factor, door_opening_time, num_simulations,
-                                              proportion_old, old_in_first_3_rows_prob, emergency_level)
+                                              proportion_old, old_in_first_3_rows_prob, emergency_level, occupancy_rate)
 
     # Analyze the results
     average_time = np.mean(evacuation_times)
