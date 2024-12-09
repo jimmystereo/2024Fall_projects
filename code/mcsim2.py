@@ -4,7 +4,31 @@ import matplotlib.pyplot as plt
 
 
 class Passenger:
+    """
+    Represents a passenger in an aircraft evacuation simulation.
+
+    Attributes:
+        base_time (float): Base evacuation time.
+        panic_level (float): Passenger's panic level (0 to 1).
+        baggage_delay (float): Delay caused by carrying baggage (0 to 1).
+        age (str): Age category ('young' or 'old').
+        move_time (float): Time taken to move per unit distance.
+        row_speed_factor (float): Speed adjustment based on row location.
+        exit_idx (int): Index of the assigned exit.
+        distance_to_exit (int): Distance to the assigned exit.
+        evacuation_time (float): Total calculated evacuation time.
+    """
     def __init__(self, row_idx, row_speed_factor, exit_idx, age="young", emergency_level=1.0):
+        """
+        Initializes a Passenger object with evacuation-related characteristics.
+
+        Args:
+            row_idx (int): Row index of the passenger's seat.
+            row_speed_factor (float): Speed factor for the passenger's row.
+            exit_idx (int): Index of the assigned exit.
+            age (str, optional): Age category. Defaults to "young".
+            emergency_level (float, optional): Severity of emergency. Defaults to 1.0.
+        """
         self.base_time = random.uniform(2, 8)  # Base evacuation time (2-8 seconds)
         self.panic_level = random.uniform(0, 1)
         self.baggage_delay = random.uniform(0, 1)
@@ -27,7 +51,12 @@ class Passenger:
         self.evacuation_time = self.calculate_evacuation_time()
 
     def apply_emergency_level(self, emergency_level):
-        """Adjust panic level, baggage delay, and physical mobility based on the emergency level."""
+        """
+        Adjust panic level, baggage delay, and physical mobility based on the emergency level.
+
+        Args:
+            emergency_level (float): Emergency level (0 to 1).
+        """
         self.panic_level *= emergency_level  # Panic level increases with emergency level
         self.panic_level = min(self.panic_level, 1)  # Cap at 1 for maximum panic level
 
@@ -37,12 +66,34 @@ class Passenger:
         self.move_time *= (1 - emergency_level * 0.2)  # Increase mobility as emergency level rises
 
     def calculate_evacuation_time(self):
-        """Calculate the evacuation time considering the distance to exit and the row's speed factor."""
+        """
+        Calculate the evacuation time considering the distance to exit and the row's speed factor.
+
+        Returns:
+            float: Total evacuation time.
+        """
         return self.baggage_delay + ((self.panic_level) * self.move_time * self.row_speed_factor * self.distance_to_exit)
 
 
 class Seat:
+    """
+        Represents a seat on the plane, which may be occupied by a passenger.
+
+        Attributes:
+            passenger (Passenger, optional): Passenger occupying the seat.
+            row_idx (int): Index of the row containing this seat.
+            row_speed_factor (float): Speed factor for the seat's row.
+            exit_idx (int): Index of the nearest exit.
+        """
     def __init__(self, row_idx, row_speed_factor, exit_idx):
+        """
+        Initializes a Seat object with its location and evacuation parameters.
+
+        Args:
+            row_idx (int): Index of the row containing this seat.
+            row_speed_factor (float): Speed factor for the seat's row.
+            exit_idx (int): Index of the nearest exit.
+        """
         self.passenger = None
         self.row_idx = row_idx
         self.row_speed_factor = row_speed_factor
@@ -50,24 +101,80 @@ class Seat:
 
 
 class Row:
+    """
+        Represents a row of seats on the plane.
+
+        Attributes:
+            seats (list): List of Seat objects in this row.
+            emergency_level (float): Emergency level affecting this row's evacuation.
+        """
     def __init__(self, seats_per_row, row_idx, row_speed_factor, exits, emergency_level):
+        """
+        Initializes a Row object with a specified number of seats.
+
+        Args:
+            seats_per_row (int): Number of seats in this row.
+            row_idx (int): Index of this row in the aircraft.
+            row_speed_factor (float): Speed factor for this row.
+            exits (list): List of available exit indices.
+            emergency_level (float): Emergency severity level.
+        """
         self.seats = [Seat(row_idx, row_speed_factor, self.assign_exit(row_idx, exits)) for _ in range(seats_per_row)]
         self.emergency_level = emergency_level
 
     def assign_exit(self, row_idx, exits):
+        """
+        Assign the nearest exit to the row.
+
+        Args:
+            row_idx (int): Index of the current row.
+            exits (list): List of available exit indices.
+
+        Returns:
+            int: Index of the nearest exit to this row.
+        """
         # Assign the nearest exit to the row
         return min(exits, key=lambda exit_idx: abs(exit_idx - row_idx))
 
     def evacuation_times(self):
+        """
+        Retrieve evacuation times for passengers in this row.
+
+        Returns:
+            list: Evacuation times for passengers in the row.
+        """
         return [seat.passenger.evacuation_time for seat in self.seats if seat.passenger is not None]
 
 
 class Plane:
+    """
+    Represents a plane with rows of seats and passengers.
+
+    Attributes:
+        rows (list): List of Row objects in the aircraft.
+        exits (list): Indices of available exits.
+        door_opening_time (int): Time for middle exit door to open.
+        proportion_old (float): Proportion of elderly passengers.
+        old_in_first_3_rows_prob (float): Probability of elderly passengers in first 3 rows.
+        emergency_level (float): Severity of emergency situation.
+        occupancy_rate (float): Fraction of seats occupied.
+    """
     def __init__(self, rows, seats_per_row, exits, speed_factor=0.8, door_opening_time=2,
                  proportion_old=0.3, old_in_first_3_rows_prob=0.7, emergency_level=1.0, occupancy_rate=1.0):
         """
         Initializes a plane with a given number of rows, seats per row, exits, and optional blocked exit.
         Adds a speed factor for the first three rows and a door opening time for the middle exit.
+
+        Args:
+            rows (int): Total number of rows in the aircraft.
+            seats_per_row (int): Number of seats in each row.
+            exits (list): Indices of available exits.
+            speed_factor (float, optional): Speed factor for first rows. Defaults to 0.8.
+            door_opening_time (int, optional): Time for middle exit door. Defaults to 2.
+            proportion_old (float, optional): Proportion of elderly passengers. Defaults to 0.3.
+            old_in_first_3_rows_prob (float, optional): Probability of elderly in first rows. Defaults to 0.7.
+            emergency_level (float, optional): Emergency severity. Defaults to 1.0.
+            occupancy_rate (float, optional): Fraction of seats occupied. Defaults to 1.0.
         """
         self.proportion_old = proportion_old  # Proportion of old passengers
         self.old_in_first_3_rows_prob = old_in_first_3_rows_prob  # Probability that old passengers sit in the first 3 rows
@@ -89,6 +196,12 @@ class Plane:
         Generates a list of passengers with their assigned nearest exit and age.
         Includes a higher probability for old passengers to sit in the first 3 rows.
         Only a proportion of seats are occupied based on the occupancy rate.
+
+        Args:
+            emergency_level (float): Emergency level
+
+        Returns:
+            list: List of tuples representing passenger data
         """
         line = []
         for row_idx, row in enumerate(self.rows):
@@ -115,6 +228,9 @@ class Plane:
     def simulate_evacuation(self):
         """
         Simulates the evacuation process considering bottlenecks, congestion, blocked exits, and door opening times.
+
+        Returns:
+            float: Average evacuation time for all passengers
         """
         exit_queues = {exit_idx: [] for exit_idx in self.exits}
         aisle_congestion_factor = random.uniform(1, 1.5)
@@ -148,6 +264,9 @@ def monte_carlo_simulation(rows=30, seats_per_row=6, exits=[0, 15, 29], speed_fa
                            emergency_level=1.0, occupancy_rate=1.0):
     """
     Runs the Monte Carlo simulation for plane evacuation with a controlled occupancy rate.
+
+    Returns:
+        list: Evacuation times from all simulations
     """
     evacuation_times = []
     for _ in range(num_simulations):
