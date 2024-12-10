@@ -126,12 +126,12 @@ class Plane:
     # Helper function to simulate evacuation for each exit, sorted by distance_to_exit
         def evacuate_from_exit(passengers):
             # Sort the passengers by their distance to the exit (ascending)
-            passengers_sorted_by_distance = sorted(passengers, key=lambda p: p.distance_to_exit)
+            # passengers_sorted_by_distance = sorted(passengers, key=lambda p: p.distance_to_exit)
 
             evacuation_times = []
 
             # For each passenger at this exit, calculate their final evacuation time
-            for idx, passenger in enumerate(passengers_sorted_by_distance):
+            for idx, passenger in enumerate(passengers):
                 if idx == 0:
                     # First passenger evacuates without delay
                     passenger.final_time = passenger.evacuation_time
@@ -160,7 +160,7 @@ class Plane:
         """
         Draws the seatmap of the plane, showing passenger age, speed factor, evacuation time,
         and nearest exit with a gradient color based on evacuation time.
-        Passengers with smaller 'order' values will be placed closer to exits.
+        Passengers with smaller 'order' values will be placed closer to their nearest exit.
         """
         fig, ax = plt.subplots(figsize=(12, len(self.rows) * 0.5))  # Dynamic height based on rows
 
@@ -173,47 +173,44 @@ class Plane:
         max_evacuate_time = max(evac_times) if evac_times else 10
         norm = mcolors.Normalize(vmin=min_evacuate_time, vmax=max_evacuate_time)
 
-        # Collect passengers grouped by their nearest exit
-        exit_passengers = {}
+        # Collect all passengers sorted by order and their nearest exit
+        all_passengers = []
         for row_idx, row in enumerate(self.rows):
             for seat_idx, seat in enumerate(row.seats):
                 if seat.passenger:
-                    # Find the nearest exit
-                    nearest_exit = seat.passenger.exit_idx
+                    nearest_exit = min(self.exits, key=lambda exit_idx: abs(exit_idx - row_idx))
+                    all_passengers.append((seat.passenger.order, nearest_exit, row_idx, seat_idx, seat.passenger))
 
-                    # Group passengers by their nearest exit and order
-                    if nearest_exit not in exit_passengers:
-                        exit_passengers[nearest_exit] = []
-                    exit_passengers[nearest_exit].append((seat.passenger.order, row_idx, seat_idx, seat.passenger))
-
-        # Sort passengers for each exit by their order (smaller order first)
-        for exit_idx in exit_passengers:
-            exit_passengers[exit_idx].sort(key=lambda x: x[0])
+        # Sort passengers by their order and nearest exit
+        all_passengers.sort(key=lambda x: (x[1], x[0]))  # Sort by exit, then by order
 
         # Create a modified seat grid to rearrange passengers
         modified_seat_grid = [[None for _ in range(len(row.seats))] for row in self.rows]
 
-        # Rearrange passengers closer to their nearest exit based on order
-        for exit_idx, passengers in exit_passengers.items():
-            # Collect rows closer to this exit
-            exit_rows = [row_idx for row_idx in range(len(self.rows)) if min(self.exits, key=lambda x: abs(x - row_idx)) == exit_idx]
-            exit_rows.sort(key=lambda row_idx: abs(row_idx - exit_idx))
+        # Place passengers in the grid
+        placed_passengers = set()
+        for order, nearest_exit, orig_row, orig_seat, passenger in all_passengers:
+            # Find appropriate rows near the exit
+            exit_rows = [row_idx for row_idx in range(len(self.rows))
+                         if min(self.exits, key=lambda x: abs(x - row_idx)) == nearest_exit]
+            exit_rows.sort(key=lambda row_idx: abs(row_idx - nearest_exit))
 
-            # Distribute passengers to rows based on their order
-            for passenger_idx, (order, orig_row, orig_seat, passenger) in enumerate(passengers):
-                target_row_idx = exit_rows[passenger_idx % len(exit_rows)]  # Target row based on order
-
-                # Find the next available seat in the target row
+            # Find an unoccupied seat in the appropriate rows
+            placed = False
+            for target_row_idx in exit_rows:
                 for seat_idx in range(len(self.rows[target_row_idx].seats)):
                     if modified_seat_grid[target_row_idx][seat_idx] is None:
                         modified_seat_grid[target_row_idx][seat_idx] = passenger
+                        placed = True
+                        placed_passengers.add(passenger)
                         break
+                if placed:
+                    break
 
         # Loop through rows and seats to plot the seatmap
         for row_idx, row in enumerate(self.rows):
             for seat_idx, seat in enumerate(row.seats):
                 x, y = seat_idx, len(self.rows) - row_idx - 1  # Invert y-axis for top-left orientation
-                # x, y = len(row.seats) - seat_idx - 1, row_idx  # Invert y-axis for top-left orientation
 
                 # Use the modified seat grid for passenger placement
                 passenger = modified_seat_grid[row_idx][seat_idx] if modified_seat_grid[row_idx][seat_idx] is not None else seat.passenger
@@ -284,9 +281,7 @@ class Plane:
         # Title and show
         plt.title("Plane Seatmap with Gradient Evacuation Time and Assigned Exits")
         plt.tight_layout()
-        plt.show()
-
-# Assuming Plane, Row, and Passenger classes are defined as in your earlier setup
+        plt.show()# Assuming Plane, Row, and Passenger classes are defined as in your earlier setup
 # To use:
 rows = 30           # Number of rows in the plane
 seats_per_row = 3   # Seats per row (standard economy configuration)
@@ -297,7 +292,7 @@ num_simulations = 1000
 proportion_old = 0.3  # 30% old passengers
 old_in_first_3_rows_prob = 0.6  # 70% chance for old passengers to sit in the first 3 rows
 emergency_level = 0.9  # Emergency level: 0.0 (low) to 1.0 (high)
-occupancy_rate = 0.5  # 80% of seats are occupied
+occupancy_rate = 1  # 80% of seats are occupied
 
 plane = Plane(rows, seats_per_row, exits, speed_factor, door_opening_time, proportion_old,
               old_in_first_3_rows_prob, emergency_level, occupancy_rate)
