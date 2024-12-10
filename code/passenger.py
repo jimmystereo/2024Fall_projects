@@ -66,7 +66,8 @@ class Passenger:
         self.panic_level = random.uniform(0, 1)
         self.baggage_delay = random.uniform(0, 1)
         self.age = age
-
+        self.row_idx = row_idx
+        self.order = None
         # Adjust physical mobility based on age
         if self.age == 'old':
             self.move_time = random.uniform(8, 10)  # Older passengers are less mobile
@@ -79,7 +80,7 @@ class Passenger:
 
         # Apply emergency level adjustments
         self.apply_emergency_level(emergency_level)
-
+        self.final_time = None
         # Calculate evacuation time
         self.evacuation_time = calculate_evacuation_time(
             self.panic_level, self.move_time, self.row_speed_factor, self.distance_to_exit, self.baggage_delay

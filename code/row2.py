@@ -48,17 +48,12 @@ class Row:
         return min(exits, key=lambda exit_idx: abs(exit_idx - row_idx))
 
     def evacuation_times(self) -> List[float]:
-        """Retrieve adjusted evacuation times for passengers in this row,
-        accounting for delays caused by slower passengers in front.
+        """Retrieve evacuation times for passengers in this row.
 
-        :return: List of adjusted evacuation times for passengers in the row
+        :return: Evacuation times for passengers in the row
+
+        >>> r = Row(seats_per_row=6, row_idx=5, row_speed_factor=1.0, exits=[0, 15, 29], emergency_level=1.0)
+        >>> all(isinstance(time, float) for time in r.evacuation_times())
+        True
         """
-        times = []
-        for seat in self.seats:
-            if seat.passenger is not None:
-                if times:
-                    # Adjust based on the maximum time of passengers ahead
-                    times.append(max(times[-1], seat.passenger.evacuation_time))
-                else:
-                    times.append(seat.passenger.evacuation_time)
-        return times
+        return [seat.passenger.evacuation_time for seat in self.seats if seat.passenger is not None]
