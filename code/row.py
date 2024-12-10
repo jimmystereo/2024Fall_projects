@@ -1,5 +1,5 @@
 from seat import Seat
-
+from typing import List
 
 class Row:
     """Represents a row of seats on the plane.
@@ -20,12 +20,13 @@ class Row:
     >>> all(isinstance(seat, Seat) for seat in r.seats)
     True
     """
-    def __init__(self, seats_per_row, row_idx, row_speed_factor, exits, emergency_level):
+    def __init__(self, seats_per_row: int, row_idx: int, row_speed_factor: float, exits: List[int],
+                 emergency_level: float) -> None:
         """Initializes a Row object with a specified number of seats."""
         self.seats = [Seat(row_idx, row_speed_factor, self.assign_exit(row_idx, exits)) for _ in range(seats_per_row)]
         self.emergency_level = emergency_level
 
-    def assign_exit(self, row_idx, exits):
+    def assign_exit(self, row_idx: int, exits: List[int]) -> int:
         """Assign the nearest exit to the row.
 
         :param row_idx: ndex of the current row
@@ -46,7 +47,7 @@ class Row:
         # Assign the nearest exit to the row
         return min(exits, key=lambda exit_idx: abs(exit_idx - row_idx))
 
-    def evacuation_times(self):
+    def evacuation_times(self) -> List[float]:
         """Retrieve evacuation times for passengers in this row.
 
         :return: Evacuation times for passengers in the row

@@ -1,7 +1,7 @@
 import random
 from row import Row
 from passenger import Passenger
-
+from typing import List, Tuple
 
 class Plane:
     """Represents a plane with rows of seats and passengers.
@@ -34,8 +34,9 @@ class Plane:
     >>> all(0 < len(row.seats) <= 6 for row in plane.rows)
     True
     """
-    def __init__(self, rows, seats_per_row, exits, speed_factor=0.8, door_opening_time=2,
-                 proportion_old=0.3, old_in_first_3_rows_prob=0.7, emergency_level=1.0, occupancy_rate=1.0):
+    def __init__(self, rows: int, seats_per_row: int, exits: List[int], speed_factor: float = 0.8,
+                 door_opening_time: float = 2,proportion_old: float = 0.3, old_in_first_3_rows_prob: float = 0.7,
+                 emergency_level: float = 1.0,occupancy_rate: float = 1.0) -> None:
         """Initializes a plane with a given number of rows, seats per row, exits, and optional blocked exit.
         Adds a speed factor for the first three rows and a door opening time for the middle exit.
         """
@@ -54,7 +55,7 @@ class Plane:
 
         self.line = self.generate_line(emergency_level)
 
-    def generate_line(self, emergency_level):
+    def generate_line(self, emergency_level: float) -> List[Tuple[int, int, float]]:
         """Generates a list of passengers with their assigned nearest exit and age.
         Includes a higher probability for old passengers to sit in the first 3 rows.
         Only a proportion of seats are occupied based on the occupancy rate.
@@ -85,7 +86,7 @@ class Plane:
         return line
 
 
-    def simulate_evacuation(self):
+    def simulate_evacuation(self) -> float:
         """Simulates the evacuation process considering bottlenecks, congestion, blocked exits, and door opening times.
 
         :return: Average evacuation time for all passengers

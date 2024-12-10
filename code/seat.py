@@ -15,7 +15,7 @@ class Seat:
     >>> isinstance(seat, Seat)
     True
     """
-    def __init__(self, row_idx, row_speed_factor, exit_idx):
+    def __init__(self, row_idx: int, row_speed_factor: float, exit_idx: int) -> None:
         """Initializes a Seat object with its location and evacuation parameters."""
         self.passenger = None
         self.row_idx = row_idx

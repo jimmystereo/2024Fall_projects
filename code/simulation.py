@@ -1,11 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from plane import Plane
+from typing import List
 
 
-def monte_carlo_simulation(rows=30, seats_per_row=6, exits=[0, 15, 29], speed_factor=0.8, door_opening_time=2,
-                           num_simulations=1000, proportion_old=0.3, old_in_first_3_rows_prob=0.7,
-                           emergency_level=1.0, occupancy_rate=1.0):
+def monte_carlo_simulation(rows: int = 30, seats_per_row: int = 6, exits: List[int] = [0, 15, 29],
+                           speed_factor: float = 0.8, door_opening_time: float = 2, num_simulations: int = 1000,
+                           proportion_old: float = 0.3, old_in_first_3_rows_prob: float = 0.7,
+                           emergency_level: float = 1.0, occupancy_rate: float = 1.0) -> List[float]:
     """Runs the Monte Carlo simulation for plane evacuation with a controlled occupancy rate.
 
     :return: Evacuation times from all simulations
