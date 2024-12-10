@@ -1,4 +1,31 @@
 import random
+from numba import njit
+
+@njit
+def calculate_evacuation_time(panic_level: float, move_time: float, row_speed_factor: float,
+                              distance_to_exit: int, baggage_delay: float) -> float:
+    """Calculate the evacuation time considering the distance to exit and the row's speed factor.
+
+    :param panic_level: The passenger's panic level (0 to 1)
+    :param move_time: Time taken to move per unit distance, based on passenger mobility
+    :param row_speed_factor: Speed adjustment factor for the passenger's row
+    :param distance_to_exit: Distance between the passenger's row and the assigned exit
+    :param baggage_delay: Delay caused by carrying baggage
+
+    :return: Total evacuation time
+
+    >>> calculate_evacuation_time(0.5, 4.0, 1.0, 10, 1.0)
+    21.0
+    >>> calculate_evacuation_time(0.0, 1.0, 1.0, 0, 0.0)
+    0.0
+    >>> calculate_evacuation_time(1.0, 10.0, 2.0, 50, 5.0)
+    1005.0
+    >>> calculate_evacuation_time(0.5, 4.0, 1.0, 5, 1.0) < calculate_evacuation_time(0.5, 4.0, 1.0, 10, 1.0)
+    True
+    >>> calculate_evacuation_time(0.5, 4.0, 1.0, 10, 1.0) < calculate_evacuation_time(1.0, 4.0, 1.0, 10, 1.0)
+    True
+    """
+    return baggage_delay + (panic_level * move_time * row_speed_factor * distance_to_exit)
 
 
 class Passenger:
@@ -54,7 +81,9 @@ class Passenger:
         self.apply_emergency_level(emergency_level)
 
         # Calculate evacuation time
-        self.evacuation_time = self.calculate_evacuation_time()
+        self.evacuation_time = calculate_evacuation_time(
+            self.panic_level, self.move_time, self.row_speed_factor, self.distance_to_exit, self.baggage_delay
+        )
 
     def apply_emergency_level(self, emergency_level: float) -> None:
         """Adjust panic level, baggage delay, and physical mobility based on the emergency level.
@@ -77,18 +106,3 @@ class Passenger:
 
         # Physical mobility could increase as people are more urgent during high emergency levels
         self.move_time *= (1 - emergency_level * 0.2)  # Increase mobility as emergency level rises
-
-    def calculate_evacuation_time(self) -> float:
-        """Calculate the evacuation time considering the distance to exit and the row's speed factor.
-
-        :return: Total evacuation time
-
-        >>> p = Passenger(row_idx=5, row_speed_factor=0.8, exit_idx=10)
-        >>> p.calculate_evacuation_time() > 0
-        True
-        >>> p_near = Passenger(row_idx=5, row_speed_factor=1.0, exit_idx=6)
-        >>> p_far = Passenger(row_idx=5, row_speed_factor=1.0, exit_idx=25)
-        >>> p_near.calculate_evacuation_time() < p_far.calculate_evacuation_time()
-        True
-        """
-        return self.baggage_delay + ((self.panic_level) * self.move_time * self.row_speed_factor * self.distance_to_exit)
