@@ -15,7 +15,6 @@ class Plane:
         seats_per_row (int): Number of seats per row in economy section
         seats_per_row_front (int): Number of seats per row in front section
         proportion_old (float): Proportion of elderly passengers
-        old_in_first_3_rows_prob (float): Probability of elderly passengers sitting in the first 3 rows
         emergency_level (float): Severity of the emergency situation
         occupancy_rate (float): Fraction of seats occupied
         speed_factor (float): Speed adjustment factor for passengers in the front rows
@@ -31,7 +30,6 @@ class Plane:
     :param front_rows: Number of rows in the front section (default: 4)
     :param speed_factor: Speed adjustment factor for the front rows (default: 0.8)
     :param proportion_old: Proportion of elderly passengers (default: 0.3)
-    :param old_in_first_3_rows_prob: Probability of elderly passengers sitting in the first 3 rows (default: 0.7)
     :param emergency_level: Severity of the emergency situation (0 to 1) (default: 1.0)
     :param occupancy_rate: Fraction of seats occupied (default: 1.0)
 
@@ -43,8 +41,7 @@ class Plane:
     True
     """
     def __init__(self, rows: int, seats_per_row: int, exits: List[int], speed_factor: float = 0.8,
-                 proportion_old: float = 0.3, old_in_first_3_rows_prob: float = 0.7,
-                 emergency_level: float = 1.0, occupancy_rate: float = 1.0,
+                 proportion_old: float = 0.3, emergency_level: float = 1.0, occupancy_rate: float = 1.0,
                  seats_per_row_front: int = 4, front_rows: int = 4) -> None:
         """Initializes a plane with a given number of rows and different seat configurations for
         front and economy sections. Adds a speed factor for the front rows.
@@ -53,7 +50,6 @@ class Plane:
         self.seats_per_row_front = seats_per_row_front
         self.seats_per_row = seats_per_row
         self.proportion_old = proportion_old
-        self.old_in_first_3_rows_prob = old_in_first_3_rows_prob
         self.rows = []
         self.exits = exits
         self.emergency_level = emergency_level
@@ -72,7 +68,6 @@ class Plane:
 
     def generate_line(self, emergency_level: float) -> List[Tuple[int, int, float]]:
         """Generates a list of passengers with their assigned nearest exit and age.
-        Includes a higher probability for old passengers to sit in the first 3 rows.
         Only a proportion of seats are occupied based on the occupancy rate.
 
         :param emergency_level: Emergency level
@@ -90,13 +85,8 @@ class Plane:
                 # Randomly assign 'young' or 'old' based on the given proportion
                 age = 'old' if random.random() < self.proportion_old else 'young'
 
-                # Adjust the row assignment for old passengers
-                if age == 'old' and random.random() < self.old_in_first_3_rows_prob:
-                    # Assign old passengers to the first 3 rows with higher probability
-                    row_idx = min(row_idx, 2)  # Limit row index to 0, 1, 2 (first three rows)
-
                 # Create a Passenger instance
-                passenger = Passenger(row_idx, seat.row_speed_factor, seat.exit_idx, age, emergency_level)
+                passenger = Passenger(seat.row_idx, seat.row_speed_factor, seat.exit_idx, age, emergency_level)
                 evac_time = passenger.evacuation_time
                 nearest_exit = passenger.exit_idx
 
@@ -261,7 +251,6 @@ class Plane:
             f"Front Row Seats: {self.seats_per_row_front:}\n"
             f"Economy Seats: {self.seats_per_row:}\n"
             f"Proportion Old: {self.proportion_old * 100:.1f}%\n"
-            f"Old in First 3 Rows: {self.old_in_first_3_rows_prob * 100:.1f}%\n"
             f"Speed Factor (Front Rows): {self.speed_factor:.2f}\n"
             f"Emergency Level: {self.emergency_level:.2f}\n"
             f"Occupancy Rate: {self.occupancy_rate * 100:.1f}%"
@@ -278,17 +267,16 @@ class Plane:
 if __name__ == '__main__':
     # A320 Configuration
     rows = 26                    # Total rows in the plane
-    seats_per_row_front = 2       # Seats per row in first class/business class
-    seats_per_row = 3           # Seats per row in economy
-    front_rows = 3              # Number of rows in first class/business class
-    exits = [0, 9, 10, 25]      # Exit row positions
+    seats_per_row_front = 2      # Seats per row in first class/business class
+    seats_per_row = 3            # Seats per row in economy
+    front_rows = 3               # Number of rows in first class/business class
+    exits = [0, 9, 10, 25]       # Exit row positions
 
     # Simulation parameters
-    speed_factor = 0.8          # Front rows move faster (80% of normal time)
-    proportion_old = 0.3        # 30% elderly passengers
-    old_in_first_3_rows_prob = 0.7  # 70% chance for elderly in first 3 rows
-    emergency_level = 0.5       # Medium emergency (0.0-1.0)
-    occupancy_rate = 0.8        # 80% seats occupied
+    speed_factor = 0.8           # Front rows move faster (80% of normal time)
+    proportion_old = 0.3         # 30% elderly passengers
+    emergency_level = 0.5        # Medium emergency (0.0-1.0)
+    occupancy_rate = 0.8         # 80% seats occupied
 
     # Create and simulate plane
     plane = Plane(rows=rows,
@@ -296,7 +284,6 @@ if __name__ == '__main__':
                   exits=exits,
                   speed_factor=speed_factor,
                   proportion_old=proportion_old,
-                  old_in_first_3_rows_prob=old_in_first_3_rows_prob,
                   emergency_level=emergency_level,
                   occupancy_rate=occupancy_rate,
                   seats_per_row_front=seats_per_row_front,

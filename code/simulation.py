@@ -10,13 +10,13 @@ def simulate_single_plane(args):
 
     :param args: A tuple containing simulation parameters:
                 rows, seats_per_row, seats_per_row_front, front_rows, exits,
-                speed_factor, proportion_old, old_in_first_3_rows_prob,
+                speed_factor, proportion_old,
                 emergency_level, occupancy_rate
 
     :return: The evacuation time for a single simulation
     """
     (rows, seats_per_row, seats_per_row_front, front_rows, exits, speed_factor,
-     proportion_old, old_in_first_3_rows_prob, emergency_level, occupancy_rate) = args
+     proportion_old, emergency_level, occupancy_rate) = args
 
     plane = Plane(rows=rows,
                   seats_per_row=seats_per_row,
@@ -25,7 +25,6 @@ def simulate_single_plane(args):
                   exits=exits,
                   speed_factor=speed_factor,
                   proportion_old=proportion_old,
-                  old_in_first_3_rows_prob=old_in_first_3_rows_prob,
                   emergency_level=emergency_level,
                   occupancy_rate=occupancy_rate)
     return plane.simulate_evacuation()
@@ -39,7 +38,6 @@ def monte_carlo_simulation(
         speed_factor: float = 0.8,
         num_simulations: int = 1000,
         proportion_old: float = 0.3,
-        old_in_first_3_rows_prob: float = 0.7,
         emergency_level: float = 1.0,
         occupancy_rate: float = 1.0
 ) -> List[float]:
@@ -53,7 +51,6 @@ def monte_carlo_simulation(
     :param speed_factor: Speed adjustment factor for front rows
     :param num_simulations: Number of simulations to run
     :param proportion_old: Proportion of elderly passengers
-    :param old_in_first_3_rows_prob: Probability of elderly passengers sitting in first three rows
     :param emergency_level: Emergency level affecting urgency and behavior
     :param occupancy_rate: Proportion of occupied seats
 
@@ -62,7 +59,7 @@ def monte_carlo_simulation(
     # Create a list of arguments for each simulation
     simulation_args = [(
         rows, seats_per_row, seats_per_row_front, front_rows, exits,
-        speed_factor, proportion_old, old_in_first_3_rows_prob,
+        speed_factor, proportion_old,
         emergency_level, occupancy_rate
     )] * int(num_simulations)
 
@@ -124,7 +121,6 @@ def main():
     # Simulation parameters
     speed_factor = 0.8
     proportion_old = 0.3
-    old_in_first_3_rows_prob = 0.7
     emergency_level = 0.5
     occupancy_rate = 0.8
     num_simulations = 1000
@@ -139,7 +135,6 @@ def main():
         speed_factor=speed_factor,
         num_simulations=num_simulations,
         proportion_old=proportion_old,
-        old_in_first_3_rows_prob=old_in_first_3_rows_prob,
         emergency_level=emergency_level,
         occupancy_rate=occupancy_rate
     )
@@ -153,8 +148,7 @@ def main():
         'Speed Factor': speed_factor,
         'Emergency Level': emergency_level,
         'Occupancy Rate': f'{occupancy_rate*100}%',
-        'Elderly %': f'{proportion_old*100}%',
-        'Elderly in Front %': f'{old_in_first_3_rows_prob*100}%'
+        'Elderly %': f'{proportion_old*100}%'
     }
 
     # Plot results
