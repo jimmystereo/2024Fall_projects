@@ -288,3 +288,20 @@ class Plane:
 
         plt.tight_layout()
         plt.show()
+
+if __name__ == '__main__':
+    rows = 30           # Number of rows in the plane
+    seats_per_row = 3   # Seats per row (standard economy configuration)
+    exits = [0, 15, 29] # Locations of exits (front, middle, back exits)
+    speed_factor = 0.8  # First three rows move faster (80% of the normal time)
+    door_opening_time = 2  # Time for middle exit door to open (2 seconds)
+    num_simulations = 1000
+    proportion_old = 0.3  # 30% old passengers
+    old_in_first_3_rows_prob = 0.7  # 70% chance for old passengers to sit in the first 3 rows
+    emergency_level = 0.5  # Emergency level: 0.0 (low) to 1.0 (high)
+    occupancy_rate = 0.8  # 80% of seats are occupied
+
+    plane = Plane(rows, seats_per_row, exits, speed_factor, door_opening_time, proportion_old,
+                  old_in_first_3_rows_prob, emergency_level, occupancy_rate)
+    plane.simulate_evacuation()
+    plane.draw_seatmap('both')
