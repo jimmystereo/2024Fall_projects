@@ -32,7 +32,6 @@ class Passenger:
     """Represents a passenger in an aircraft evacuation simulation.
 
     Attributes:
-        base_time (float): Base evacuation time in seconds (randomly assigned between 2-8)
         panic_level (float): Passenger's panic level (0 to 1, where 1 is maximum panic)
         baggage_delay (float): Delay caused by carrying baggage in seconds (0 to 1)
         age (str): Age category, either 'young' or 'old'
@@ -66,11 +65,10 @@ class Passenger:
     def __init__(self, row_idx: int, row_speed_factor: float, exit_idx: int, age: str = "young", emergency_level: float = 1.0) -> None:
         """Initializes a Passenger object with evacuation-related characteristics.
 
-        Assigns random values for base time, panic level, and baggage delay.
+        Assigns random values for panic level, and baggage delay.
         Adjusts mobility based on age category and applies emergency level effects.
         Calculates initial evacuation time based on all factors.
         """
-        self.base_time = random.uniform(2, 8)  # Base evacuation time (2-8 seconds)
         self.panic_level = random.uniform(0, 1)
         self.baggage_delay = random.uniform(0, 1)
         self.age = age
