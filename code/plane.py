@@ -5,13 +5,6 @@ from typing import List, Tuple
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
-import random
-from row import Row
-from passenger import Passenger
-from typing import List, Tuple
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-
 class Plane:
     """Represents a plane with rows of seats and passengers.
 
@@ -108,23 +101,6 @@ class Plane:
                 line.append((row_idx, nearest_exit, evac_time, passenger))
         return line
 
-    def evacuation_times(self) -> List[float]:
-        """Retrieve adjusted evacuation times for all passengers in the plane,
-        considering delays caused by slower passengers in front of them across rows.
-
-        :return: List of adjusted evacuation times for passengers in the entire plane
-        """
-        times = []
-        for row in self.rows:
-            for seat in row.seats:
-                if seat.passenger is not None:
-                    if times:
-                        # Adjust based on the maximum time of passengers ahead
-                        times.append(max(times[-1], seat.passenger.evacuation_time))
-                    else:
-                        times.append(seat.passenger.evacuation_time)
-        return times
-
     def simulate_evacuation(self) -> float:
         """Simulate the evacuation process with dynamic exits, considering separate queues
         for each exit and congestion, and ordering by distance to the exit."""
@@ -148,9 +124,9 @@ class Plane:
                 else:
                     # Each subsequent passenger is delayed by the maximum time of previous passengers
                     max_time_ahead = max([evacuation_times[i] for i in range(idx)])
-                    passenger.final_time = max(max_time_ahead, passenger.evacuation_time)
+                    time_to_move_1_step = passenger.panic_level * passenger.move_time * passenger.row_speed_factor
+                    passenger.final_time = max(max_time_ahead, passenger.evacuation_time)+time_to_move_1_step
                     evacuation_times.append(passenger.final_time)
-
             return max(evacuation_times)
 
         # Simulate evacuation for all exits
@@ -187,7 +163,7 @@ class Plane:
         for row_idx, row in enumerate(self.rows):
             for seat_idx, seat in enumerate(row.seats):
                 if seat.passenger:
-                    nearest_exit = min(self.exits, key=lambda exit_idx: abs(exit_idx - row_idx))
+                    nearest_exit = seat.passenger.exit_idx
                     passenger_locations[(row_idx, seat_idx)] = seat.passenger
                     all_passengers.append((seat.passenger.order, nearest_exit, row_idx, seat_idx, seat.passenger))
 
@@ -294,11 +270,11 @@ class Plane:
         plt.show()
 if __name__ == '__main__':
     # A320 Configuration
-    rows = 48                    # Total rows in the plane
+    rows = 26                    # Total rows in the plane
     seats_per_row_head = 2       # Seats per row in first class/business class
-    seats_per_row = 5           # Seats per row in economy
-    front_rows = 16              # Number of rows in first class/business class
-    exits = [0,8,20,34,47]      # Exit row positions
+    seats_per_row = 3           # Seats per row in economy
+    front_rows = 3              # Number of rows in first class/business class
+    exits = [0, 9, 10, 25]      # Exit row positions
 
     # Simulation parameters
     speed_factor = 0.8          # Front rows move faster (80% of normal time)
@@ -321,4 +297,4 @@ if __name__ == '__main__':
 
     # Run simulation and visualize
     plane.simulate_evacuation()
-    plane.draw_seatmap('both', export_path='fig/Boeing777.png')
+    plane.draw_seatmap('both', export_path='fig/A320.png')
