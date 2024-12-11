@@ -11,6 +11,9 @@ class Plane:
     Attributes:
         rows (list): List of Row objects in the aircraft
         exits (list): Indices of available exits
+        num_rows (int): Total number of rows in the aircraft
+        seats_per_row (int): Number of seats per row in economy section
+        seats_per_row_front (int): Number of seats per row in front section
         proportion_old (float): Proportion of elderly passengers
         old_in_first_3_rows_prob (float): Probability of elderly passengers sitting in the first 3 rows
         emergency_level (float): Severity of the emergency situation
@@ -23,28 +26,32 @@ class Plane:
 
     :param rows: Number of rows in the aircraft
     :param seats_per_row: Number of seats per row in economy section
-    :param seats_per_row_head: Number of seats per row in the front section
-    :param front_rows: Number of rows in the front section (default: 4)
     :param exits: Indices of available exits
+    :param seats_per_row_front: Number of seats per row in the front section (default: 4)
+    :param front_rows: Number of rows in the front section (default: 4)
     :param speed_factor: Speed adjustment factor for the front rows (default: 0.8)
     :param proportion_old: Proportion of elderly passengers (default: 0.3)
     :param old_in_first_3_rows_prob: Probability of elderly passengers sitting in the first 3 rows (default: 0.7)
     :param emergency_level: Severity of the emergency situation (0 to 1) (default: 1.0)
     :param occupancy_rate: Fraction of seats occupied (default: 1.0)
 
-    >>> plane = Plane(rows=10, seats_per_row=6, seats_per_row_head=4, front_rows=3, exits=[0, 15, 29])
-    >>> len(plane.rows) == 10
-    True
+    >>> plane = Plane(rows=10, seats_per_row=6, exits=[0, 15, 29],
+    ...              seats_per_row_front=4, front_rows=3)
+    >>> len(plane.rows)
+    10
     >>> all(len(row.seats) == (4 if i < 3 else 6) for i, row in enumerate(plane.rows))
     True
     """
     def __init__(self, rows: int, seats_per_row: int, exits: List[int], speed_factor: float = 0.8,
                  proportion_old: float = 0.3, old_in_first_3_rows_prob: float = 0.7,
                  emergency_level: float = 1.0, occupancy_rate: float = 1.0,
-                 seats_per_row_head: int = 4, front_rows: int = 4) -> None:
+                 seats_per_row_front: int = 4, front_rows: int = 4) -> None:
         """Initializes a plane with a given number of rows and different seat configurations for
         front and economy sections. Adds a speed factor for the front rows.
         """
+        self.num_rows = rows
+        self.seats_per_row_front = seats_per_row_front
+        self.seats_per_row = seats_per_row
         self.proportion_old = proportion_old
         self.old_in_first_3_rows_prob = old_in_first_3_rows_prob
         self.rows = []
@@ -56,9 +63,9 @@ class Plane:
         self.exits_lines = None
         self.total_evacuate_time = None
 
-        # Adjust seats per row for the front rows using seats_per_row_head
-        for idx in range(rows):
-            current_seats_per_row = seats_per_row_head if idx < front_rows else seats_per_row
+        # Adjust seats per row for the front rows using seats_per_row_front
+        for idx in range(self.num_rows):
+            current_seats_per_row = seats_per_row_front if idx < front_rows else seats_per_row
             self.rows.append(Row(current_seats_per_row, idx, speed_factor if idx < front_rows else 1, exits, emergency_level))
 
         self.line = self.generate_line(emergency_level)
@@ -142,8 +149,8 @@ class Plane:
     def draw_seatmap(self, color_mode, export_path=None):
         """Draws the seatmap of the plane, maintaining the original ordering but fixing empty
         seat visualization."""
-        seats_per_row = max([len(i.seats) for i in self.rows])
-        fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(seats_per_row*2+5, len(self.rows) * 0.5))
+
+        fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(self.seats_per_row*2+5, self.num_rows * 0.5))
 
         # Set background colors
         fig.patch.set_facecolor('white')
@@ -183,7 +190,7 @@ class Plane:
         # Place sorted passengers in their new positions
         placed_passengers = set()
         for order, nearest_exit, orig_row, orig_seat, passenger in all_passengers:
-            exit_rows = [row_idx for row_idx in range(len(self.rows))
+            exit_rows = [row_idx for row_idx in range(self.num_rows)
                          if min(self.exits, key=lambda x: abs(x - row_idx)) == nearest_exit]
             exit_rows.sort(key=lambda row_idx: abs(row_idx - nearest_exit))
 
@@ -223,7 +230,7 @@ class Plane:
 
         # Draw exits
         for exit_idx in self.exits:
-            x, y = -1, len(self.rows) - exit_idx - 1
+            x, y = -1, self.num_rows - exit_idx - 1
             for ax in [ax1, ax2]:
                 ax.add_patch(plt.Rectangle((x, y), 1, 1, edgecolor='black', facecolor='green'))
                 ax.text(x + 0.5, y + 0.5, "EXIT", ha='center', va='center', fontsize=8, color='white')
@@ -234,7 +241,7 @@ class Plane:
             ax.add_patch(plt.Rectangle((-1, -1), max_seats + 2, len(self.rows) + 1,
                                        edgecolor='black', facecolor='none', linewidth=2))
             ax.set_xlim(-2, max_seats + 1)
-            ax.set_ylim(-1, len(self.rows))
+            ax.set_ylim(-1, self.num_rows)
             ax.set_aspect('equal')
             ax.axis('off')
 
@@ -249,10 +256,10 @@ class Plane:
         # Add parameters text
         params_text = (
             f"Total Time: {self.total_evacuate_time:.2f} seconds\n\n"
-            f"Rows: {len(self.rows):}\n"
+            f"Rows: {self.num_rows:}\n"
             f"Front Rows: {self.front_rows:}\n"
-            f"Front Row Seats: {seats_per_row_head:}\n"
-            f"Economy Seats: {seats_per_row:}\n"
+            f"Front Row Seats: {self.seats_per_row_front:}\n"
+            f"Economy Seats: {self.seats_per_row:}\n"
             f"Proportion Old: {self.proportion_old * 100:.1f}%\n"
             f"Old in First 3 Rows: {self.old_in_first_3_rows_prob * 100:.1f}%\n"
             f"Speed Factor (Front Rows): {self.speed_factor:.2f}\n"
@@ -260,7 +267,7 @@ class Plane:
             f"Occupancy Rate: {self.occupancy_rate * 100:.1f}%"
         )
 
-        ax1.text(-8, len(self.rows) * 0.5, params_text,
+        ax1.text(-8, self.num_rows * 0.5, params_text,
                  fontsize=12, ha='left', va='center',
                  bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
 
@@ -271,7 +278,7 @@ class Plane:
 if __name__ == '__main__':
     # A320 Configuration
     rows = 26                    # Total rows in the plane
-    seats_per_row_head = 2       # Seats per row in first class/business class
+    seats_per_row_front = 2       # Seats per row in first class/business class
     seats_per_row = 3           # Seats per row in economy
     front_rows = 3              # Number of rows in first class/business class
     exits = [0, 9, 10, 25]      # Exit row positions
@@ -292,7 +299,7 @@ if __name__ == '__main__':
                   old_in_first_3_rows_prob=old_in_first_3_rows_prob,
                   emergency_level=emergency_level,
                   occupancy_rate=occupancy_rate,
-                  seats_per_row_head=seats_per_row_head,
+                  seats_per_row_front=seats_per_row_front,
                   front_rows=front_rows)
 
     # Run simulation and visualize

@@ -9,18 +9,18 @@ def simulate_single_plane(args):
     """Wrapper function to create a Plane instance and run the simulation.
 
     :param args: A tuple containing simulation parameters:
-                rows, seats_per_row, seats_per_row_head, front_rows, exits,
+                rows, seats_per_row, seats_per_row_front, front_rows, exits,
                 speed_factor, proportion_old, old_in_first_3_rows_prob,
                 emergency_level, occupancy_rate
 
     :return: The evacuation time for a single simulation
     """
-    (rows, seats_per_row, seats_per_row_head, front_rows, exits, speed_factor,
+    (rows, seats_per_row, seats_per_row_front, front_rows, exits, speed_factor,
      proportion_old, old_in_first_3_rows_prob, emergency_level, occupancy_rate) = args
 
     plane = Plane(rows=rows,
                   seats_per_row=seats_per_row,
-                  seats_per_row_head=seats_per_row_head,
+                  seats_per_row_front=seats_per_row_front,
                   front_rows=front_rows,
                   exits=exits,
                   speed_factor=speed_factor,
@@ -33,7 +33,7 @@ def simulate_single_plane(args):
 def monte_carlo_simulation(
         rows: int = 30,
         seats_per_row: int = 6,
-        seats_per_row_head: int = 4,
+        seats_per_row_front: int = 4,
         front_rows: int = 4,
         exits: List[int] = [0, 15, 29],
         speed_factor: float = 0.8,
@@ -47,7 +47,7 @@ def monte_carlo_simulation(
 
     :param rows: Number of rows in the plane
     :param seats_per_row: Number of seats per row in economy
-    :param seats_per_row_head: Number of seats per row in front section
+    :param seats_per_row_front: Number of seats per row in front section
     :param front_rows: Number of rows in front section
     :param exits: List of exit row indices
     :param speed_factor: Speed adjustment factor for front rows
@@ -61,10 +61,10 @@ def monte_carlo_simulation(
     """
     # Create a list of arguments for each simulation
     simulation_args = [(
-        rows, seats_per_row, seats_per_row_head, front_rows, exits,
+        rows, seats_per_row, seats_per_row_front, front_rows, exits,
         speed_factor, proportion_old, old_in_first_3_rows_prob,
         emergency_level, occupancy_rate
-    )] * num_simulations
+    )] * int(num_simulations)
 
     # Use ProcessPoolExecutor to parallelize simulations
     with ProcessPoolExecutor() as executor:
@@ -116,7 +116,7 @@ def plot_results(evacuation_times: List[float], params: dict = None):
 def main():
     # A320 Configuration
     rows = 26
-    seats_per_row_head = 2
+    seats_per_row_front = 2
     seats_per_row = 3
     front_rows = 3
     exits = [0, 9, 10, 25]
@@ -133,7 +133,7 @@ def main():
     evacuation_times = monte_carlo_simulation(
         rows=rows,
         seats_per_row=seats_per_row,
-        seats_per_row_head=seats_per_row_head,
+        seats_per_row_front=seats_per_row_front,
         front_rows=front_rows,
         exits=exits,
         speed_factor=speed_factor,
@@ -148,7 +148,7 @@ def main():
     params = {
         'Rows': rows,
         'Front Rows': front_rows,
-        'Front Row Seats': seats_per_row_head,
+        'Front Row Seats': seats_per_row_front,
         'Economy Seats': seats_per_row,
         'Speed Factor': speed_factor,
         'Emergency Level': emergency_level,
