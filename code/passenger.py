@@ -6,13 +6,13 @@ def calculate_evacuation_time(panic_level: float, move_time: float, row_speed_fa
                               distance_to_exit: int, baggage_delay: float) -> float:
     """Calculate the evacuation time considering the distance to exit and the row's speed factor.
 
-    :param panic_level: The passenger's panic level (0 to 1)
-    :param move_time: Time taken to move per unit distance, based on passenger mobility
-    :param row_speed_factor: Speed adjustment factor for the passenger's row
-    :param distance_to_exit: Distance between the passenger's row and the assigned exit
-    :param baggage_delay: Delay caused by carrying baggage
+    :param panic_level: The passenger's panic level (0 to 1, where 1 is maximum panic)
+    :param move_time: Time taken to move per unit distance, based on passenger mobility (in seconds)
+    :param row_speed_factor: Speed adjustment factor for the passenger's row (1.0 is normal speed)
+    :param distance_to_exit: Distance between the passenger's row and the assigned exit (in row units)
+    :param baggage_delay: Delay caused by carrying baggage (in seconds)
 
-    :return: Total evacuation time
+    :return: Total evacuation time in seconds
 
     >>> calculate_evacuation_time(0.5, 4.0, 1.0, 10, 1.0)
     21.0
@@ -32,21 +32,24 @@ class Passenger:
     """Represents a passenger in an aircraft evacuation simulation.
 
     Attributes:
-        base_time (float): Base evacuation time
-        panic_level (float): Passenger's panic level (0 to 1)
-        baggage_delay (float): Delay caused by carrying baggage (0 to 1)
+        base_time (float): Base evacuation time in seconds (randomly assigned between 2-8)
+        panic_level (float): Passenger's panic level (0 to 1, where 1 is maximum panic)
+        baggage_delay (float): Delay caused by carrying baggage in seconds (0 to 1)
         age (str): Age category, either 'young' or 'old'
-        move_time (float): Time taken to move per unit distance
-        row_speed_factor (float): Speed adjustment factor for the passenger's row
+        move_time (float): Time taken to move per unit distance (1-4 seconds for young, 8-10 for old)
+        row_speed_factor (float): Speed adjustment factor for the passenger's row (1.0 is normal speed)
         exit_idx (int): Index of the assigned exit
-        distance_to_exit (int): Distance to the assigned exit
-        evacuation_time (float): Total calculated evacuation time
+        distance_to_exit (int): Distance to the assigned exit in row units
+        evacuation_time (float): Total calculated evacuation time in seconds
+        row_idx (int): Index of the passenger's seat row
+        order (int): Order number of the passenger in the evacuation sequence
+        final_time (float): Final evacuation time after considering all delays and congestion
 
-    :param row_idx: Index of the passenger's seat row
-    :param age: Age category ('young' or 'old')
-    :param row_speed_factor: Speed adjustment based on row location
+    :param row_idx: Index of the passenger's seat row (0-based)
+    :param row_speed_factor: Speed adjustment based on row location (1.0 is normal speed)
     :param exit_idx: Index of the assigned exit
-    :param emergency_level: Optional. Emergency level affecting passenger behavior (0 to 1). Defaults to 1.0
+    :param age: Age category ('young' or 'old', defaults to "young")
+    :param emergency_level: Emergency level affecting passenger behavior (0 to 1, where 1 is most severe). Defaults to 1.0
 
     >>> p = Passenger(row_idx=5, row_speed_factor=0.8, exit_idx=10, age="young", emergency_level=1.0)
     >>> isinstance(p, Passenger)
@@ -61,7 +64,12 @@ class Passenger:
     True
     """
     def __init__(self, row_idx: int, row_speed_factor: float, exit_idx: int, age: str = "young", emergency_level: float = 1.0) -> None:
-        """Initializes a Passenger object with evacuation-related characteristics."""
+        """Initializes a Passenger object with evacuation-related characteristics.
+
+        Assigns random values for base time, panic level, and baggage delay.
+        Adjusts mobility based on age category and applies emergency level effects.
+        Calculates initial evacuation time based on all factors.
+        """
         self.base_time = random.uniform(2, 8)  # Base evacuation time (2-8 seconds)
         self.panic_level = random.uniform(0, 1)
         self.baggage_delay = random.uniform(0, 1)
@@ -89,7 +97,11 @@ class Passenger:
     def apply_emergency_level(self, emergency_level: float) -> None:
         """Adjust panic level, baggage delay, and physical mobility based on the emergency level.
 
-        :param emergency_level: Emergency level affecting passenger behavior (0 to 1)
+        Higher emergency levels increase panic but reduce baggage delays as passengers
+        prioritize evacuation over belongings. Physical mobility increases with emergency
+        level as adrenaline and urgency affect passenger movement.
+
+        :param emergency_level: Emergency level affecting passenger behavior (0 to 1, where 1 is most severe)
 
         >>> p = Passenger(row_idx=5, row_speed_factor=0.8, exit_idx=10, emergency_level=0.5)
         >>> init_panic = p.panic_level
