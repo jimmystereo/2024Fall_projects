@@ -5,61 +5,68 @@ from typing import List, Tuple
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
+import random
+from row import Row
+from passenger import Passenger
+from typing import List, Tuple
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+
 class Plane:
     """Represents a plane with rows of seats and passengers.
 
     Attributes:
         rows (list): List of Row objects in the aircraft
         exits (list): Indices of available exits
-        door_opening_time (float): Time for the middle exit door to open
         proportion_old (float): Proportion of elderly passengers
         old_in_first_3_rows_prob (float): Probability of elderly passengers sitting in the first 3 rows
         emergency_level (float): Severity of the emergency situation
         occupancy_rate (float): Fraction of seats occupied
-        speed_factor (float): Speed adjustment factor for passengers in the first three rows
+        speed_factor (float): Speed adjustment factor for passengers in the front rows
         exits_lines (dict): Dictionary mapping exit indices to lists of passengers using that exit
         total_evacuate_time (float): Total time taken for complete evacuation
         line (list): List of tuples containing passenger data and their evacuation details
+        front_rows (int): Number of rows in the front section
 
     :param rows: Number of rows in the aircraft
-    :param seats_per_row: Number of seats per row
+    :param seats_per_row: Number of seats per row in economy section
+    :param seats_per_row_head: Number of seats per row in the front section
+    :param front_rows: Number of rows in the front section (default: 4)
     :param exits: Indices of available exits
-    :param speed_factor: Speed adjustment factor for the first three rows (default: 0.8)
-    :param door_opening_time: Time (in seconds) for the middle exit door to open (default: 2)
+    :param speed_factor: Speed adjustment factor for the front rows (default: 0.8)
     :param proportion_old: Proportion of elderly passengers (default: 0.3)
     :param old_in_first_3_rows_prob: Probability of elderly passengers sitting in the first 3 rows (default: 0.7)
     :param emergency_level: Severity of the emergency situation (0 to 1) (default: 1.0)
     :param occupancy_rate: Fraction of seats occupied (default: 1.0)
 
-    >>> plane = Plane(rows=10, seats_per_row=6, exits=[0, 15, 29])
+    >>> plane = Plane(rows=10, seats_per_row=6, seats_per_row_head=4, front_rows=3, exits=[0, 15, 29])
     >>> len(plane.rows) == 10
     True
-    >>> all(len(row.seats) == (2 if i < 3 else 6) for i, row in enumerate(plane.rows))
-    True
-    >>> plane = Plane(rows=10, seats_per_row=6, exits=[0, 15], occupancy_rate=0.5)
-    >>> all(0 < len(row.seats) <= 6 for row in plane.rows)
+    >>> all(len(row.seats) == (4 if i < 3 else 6) for i, row in enumerate(plane.rows))
     True
     """
     def __init__(self, rows: int, seats_per_row: int, exits: List[int], speed_factor: float = 0.8,
-                 door_opening_time: float = 2,proportion_old: float = 0.3, old_in_first_3_rows_prob: float = 0.7,
-                 emergency_level: float = 1.0,occupancy_rate: float = 1.0) -> None:
-        """Initializes a plane with a given number of rows, seats per row, exits, and optional blocked exit.
-        Adds a speed factor for the first three rows and a door opening time for the middle exit.
+                 proportion_old: float = 0.3, old_in_first_3_rows_prob: float = 0.7,
+                 emergency_level: float = 1.0, occupancy_rate: float = 1.0,
+                 seats_per_row_head: int = 4, front_rows: int = 4) -> None:
+        """Initializes a plane with a given number of rows and different seat configurations for
+        front and economy sections. Adds a speed factor for the front rows.
         """
-        self.proportion_old = proportion_old  # Proportion of old passengers
-        self.old_in_first_3_rows_prob = old_in_first_3_rows_prob  # Probability that old passengers sit in the first 3 rows
+        self.proportion_old = proportion_old
+        self.old_in_first_3_rows_prob = old_in_first_3_rows_prob
         self.rows = []
         self.exits = exits
-        self.door_opening_time = door_opening_time  # Time for middle exit door to open
-        self.emergency_level = emergency_level  # Emergency level
-        self.occupancy_rate = occupancy_rate  # Fraction of seats occupied
+        self.emergency_level = emergency_level
+        self.occupancy_rate = occupancy_rate
         self.speed_factor = speed_factor
+        self.front_rows = front_rows
         self.exits_lines = None
         self.total_evacuate_time = None
-        # Adjust seats per row for the first three rows
+
+        # Adjust seats per row for the front rows using seats_per_row_head
         for idx in range(rows):
-            current_seats_per_row = 2 if idx < 3 else seats_per_row
-            self.rows.append(Row(current_seats_per_row, idx, speed_factor if idx < 3 else 1, exits, emergency_level))
+            current_seats_per_row = seats_per_row_head if idx < front_rows else seats_per_row
+            self.rows.append(Row(current_seats_per_row, idx, speed_factor if idx < front_rows else 1, exits, emergency_level))
 
         self.line = self.generate_line(emergency_level)
 
@@ -112,46 +119,41 @@ class Plane:
             for seat in row.seats:
                 if seat.passenger is not None:
                     if times:
-                        # Adjust based on the maximum time of passengers ahead (within the row and across rows)
+                        # Adjust based on the maximum time of passengers ahead
                         times.append(max(times[-1], seat.passenger.evacuation_time))
                     else:
                         times.append(seat.passenger.evacuation_time)
         return times
 
     def simulate_evacuation(self) -> float:
-        """Simulate the evacuation process with dynamic exits, considering separate queues for each exit and congestion, and ordering by distance to the exit."""
+        """Simulate the evacuation process with dynamic exits, considering separate queues
+        for each exit and congestion, and ordering by distance to the exit."""
 
-        # Initialize the dictionary for exits with dynamic allocation (using exit indexes)
-        exits = {i: [] for i in self.exits}  # where self.exits can represent a list or range of exit indexes
+        # Initialize the dictionary for exits with dynamic allocation
+        exits = {i: [] for i in self.exits}
 
         # Dynamically assign passengers to exits based on their exit index
         for p in self.line:
             nearest_exit = p[1]
             exits[nearest_exit].append(p[3])
         self.exits_lines = exits
-    # Helper function to simulate evacuation for each exit, sorted by distance_to_exit
+
         def evacuate_from_exit(passengers):
-            # Sort the passengers by their distance to the exit (ascending)
-            # passengers_sorted_by_distance = sorted(passengers, key=lambda p: p.distance_to_exit)
-
             evacuation_times = []
-
-            # For each passenger at this exit, calculate their final evacuation time
             for idx, passenger in enumerate(passengers):
                 if idx == 0:
                     # First passenger evacuates without delay
                     passenger.final_time = passenger.evacuation_time
                     evacuation_times.append(passenger.final_time)
                 else:
-                    # Each subsequent passenger is delayed by the maximum time of the previous passengers
+                    # Each subsequent passenger is delayed by the maximum time of previous passengers
                     max_time_ahead = max([evacuation_times[i] for i in range(idx)])
                     passenger.final_time = max(max_time_ahead, passenger.evacuation_time)
                     evacuation_times.append(passenger.final_time)
 
-            # Return the latest evacuation time for this exit
             return max(evacuation_times)
 
-        # Simulate evacuation for all exits and calculate the time per exit
+        # Simulate evacuation for all exits
         evacuation_times_for_exits = []
         for exit_idx in exits:
             evacuation_times_for_exits.append(evacuate_from_exit(exits[exit_idx]))
@@ -161,12 +163,11 @@ class Plane:
         self.total_evacuate_time = total_evacuate_time
         return total_evacuate_time
 
-
-    def draw_seatmap(self, color_mode):
-        """
-        Draws the seatmap of the plane, maintaining the original ordering but fixing empty seat visualization.
-        """
-        fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, len(self.rows) * 0.5))
+    def draw_seatmap(self, color_mode, export_path=None):
+        """Draws the seatmap of the plane, maintaining the original ordering but fixing empty
+        seat visualization."""
+        seats_per_row = max([len(i.seats) for i in self.rows])
+        fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(seats_per_row*2+5, len(self.rows) * 0.5))
 
         # Set background colors
         fig.patch.set_facecolor('white')
@@ -191,13 +192,13 @@ class Plane:
                     all_passengers.append((seat.passenger.order, nearest_exit, row_idx, seat_idx, seat.passenger))
 
         # Sort passengers by their order and nearest exit
-        all_passengers.sort(key=lambda x: (x[1], x[0]))  # Sort by exit, then by order
+        all_passengers.sort(key=lambda x: (x[1], x[0]))
 
         # Create the modified seat grid while preserving empty seats
         modified_seat_grid = [[None for _ in range(len(row.seats))] for row in self.rows]
-        empty_seats = set()  # Track genuinely empty seats
+        empty_seats = set()
 
-        # First, mark all empty seats
+        # Mark all empty seats
         for row_idx, row in enumerate(self.rows):
             for seat_idx, seat in enumerate(row.seats):
                 if not seat.passenger:
@@ -228,11 +229,9 @@ class Plane:
 
                 for ax, mode in [(ax1, 'initial'), (ax2, 'final')]:
                     if (row_idx, seat_idx) in empty_seats:
-                        # This is a genuinely empty seat
                         ax.add_patch(plt.Rectangle((x, y), 1, 1, edgecolor='black', facecolor='white'))
                         ax.text(x + 0.5, y + 0.5, "Empty", ha='center', va='center', fontsize=8, color='darkgray')
                     else:
-                        # This is an occupied seat
                         passenger = modified_seat_grid[row_idx][seat_idx]
                         if passenger:
                             evac_time = passenger.evacuation_time if mode == 'initial' else passenger.final_time
@@ -274,10 +273,13 @@ class Plane:
         # Add parameters text
         params_text = (
             f"Total Time: {self.total_evacuate_time:.2f} seconds\n\n"
+            f"Rows: {len(self.rows):}\n"
+            f"Front Rows: {self.front_rows:}\n"
+            f"Front Row Seats: {seats_per_row_head:}\n"
+            f"Economy Seats: {seats_per_row:}\n"
             f"Proportion Old: {self.proportion_old * 100:.1f}%\n"
             f"Old in First 3 Rows: {self.old_in_first_3_rows_prob * 100:.1f}%\n"
-            f"Speed Factor (First 3 Rows): {self.speed_factor:.2f}\n"
-            f"Door Opening Time: {self.door_opening_time:.2f} seconds\n"
+            f"Speed Factor (Front Rows): {self.speed_factor:.2f}\n"
             f"Emergency Level: {self.emergency_level:.2f}\n"
             f"Occupancy Rate: {self.occupancy_rate * 100:.1f}%"
         )
@@ -287,21 +289,36 @@ class Plane:
                  bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
 
         plt.tight_layout()
+        if export_path:
+            plt.savefig(export_path)
         plt.show()
-
 if __name__ == '__main__':
-    rows = 30           # Number of rows in the plane
-    seats_per_row = 3   # Seats per row (standard economy configuration)
-    exits = [0, 15, 29] # Locations of exits (front, middle, back exits)
-    speed_factor = 0.8  # First three rows move faster (80% of the normal time)
-    door_opening_time = 2  # Time for middle exit door to open (2 seconds)
-    num_simulations = 1000
-    proportion_old = 0.3  # 30% old passengers
-    old_in_first_3_rows_prob = 0.7  # 70% chance for old passengers to sit in the first 3 rows
-    emergency_level = 0.5  # Emergency level: 0.0 (low) to 1.0 (high)
-    occupancy_rate = 0.8  # 80% of seats are occupied
+    # A320 Configuration
+    rows = 48                    # Total rows in the plane
+    seats_per_row_head = 2       # Seats per row in first class/business class
+    seats_per_row = 5           # Seats per row in economy
+    front_rows = 16              # Number of rows in first class/business class
+    exits = [0,8,20,34,47]      # Exit row positions
 
-    plane = Plane(rows, seats_per_row, exits, speed_factor, door_opening_time, proportion_old,
-                  old_in_first_3_rows_prob, emergency_level, occupancy_rate)
+    # Simulation parameters
+    speed_factor = 0.8          # Front rows move faster (80% of normal time)
+    proportion_old = 0.3        # 30% elderly passengers
+    old_in_first_3_rows_prob = 0.7  # 70% chance for elderly in first 3 rows
+    emergency_level = 0.5       # Medium emergency (0.0-1.0)
+    occupancy_rate = 0.8        # 80% seats occupied
+
+    # Create and simulate plane
+    plane = Plane(rows=rows,
+                  seats_per_row=seats_per_row,
+                  exits=exits,
+                  speed_factor=speed_factor,
+                  proportion_old=proportion_old,
+                  old_in_first_3_rows_prob=old_in_first_3_rows_prob,
+                  emergency_level=emergency_level,
+                  occupancy_rate=occupancy_rate,
+                  seats_per_row_head=seats_per_row_head,
+                  front_rows=front_rows)
+
+    # Run simulation and visualize
     plane.simulate_evacuation()
-    plane.draw_seatmap('both')
+    plane.draw_seatmap('both', export_path='fig/Boeing777.png')
