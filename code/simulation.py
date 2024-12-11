@@ -153,6 +153,7 @@ def main():
 
     # Plot results
     plot_results(evacuation_times, params)
+    plt.savefig('fig/sim.png')
     plt.show()
 
 if __name__ == "__main__":

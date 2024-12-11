@@ -96,6 +96,11 @@ class Plane:
                 seat.passenger.order = order
                 # Add passenger information to the line
                 line.append((row_idx, nearest_exit, evac_time, passenger))
+        line.sort(key=lambda x: x[3].distance_to_exit)
+        order = 0
+        for i in line:
+            order += 1
+            i[3].order = order
         return line
 
     def simulate_evacuation(self) -> float:
