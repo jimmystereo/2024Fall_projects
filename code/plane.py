@@ -16,16 +16,20 @@ class Plane:
         old_in_first_3_rows_prob (float): Probability of elderly passengers sitting in the first 3 rows
         emergency_level (float): Severity of the emergency situation
         occupancy_rate (float): Fraction of seats occupied
+        speed_factor (float): Speed adjustment factor for passengers in the first three rows
+        exits_lines (dict): Dictionary mapping exit indices to lists of passengers using that exit
+        total_evacuate_time (float): Total time taken for complete evacuation
+        line (list): List of tuples containing passenger data and their evacuation details
 
     :param rows: Number of rows in the aircraft
     :param seats_per_row: Number of seats per row
     :param exits: Indices of available exits
-    :param speed_factor: Speed adjustment factor for the first three rows
-    :param door_opening_time: Time (in seconds) for the middle exit door to open
-    :param proportion_old: Proportion of elderly passengers
-    :param old_in_first_3_rows_prob: Probability of elderly passengers sitting in the first 3 rows
-    :param emergency_level: Severity of the emergency situation (0 to 1)
-    :param occupancy_rate: Fraction of seats occupied
+    :param speed_factor: Speed adjustment factor for the first three rows (default: 0.8)
+    :param door_opening_time: Time (in seconds) for the middle exit door to open (default: 2)
+    :param proportion_old: Proportion of elderly passengers (default: 0.3)
+    :param old_in_first_3_rows_prob: Probability of elderly passengers sitting in the first 3 rows (default: 0.7)
+    :param emergency_level: Severity of the emergency situation (0 to 1) (default: 1.0)
+    :param occupancy_rate: Fraction of seats occupied (default: 1.0)
 
     >>> plane = Plane(rows=10, seats_per_row=6, exits=[0, 15, 29])
     >>> len(plane.rows) == 10
@@ -49,7 +53,9 @@ class Plane:
         self.door_opening_time = door_opening_time  # Time for middle exit door to open
         self.emergency_level = emergency_level  # Emergency level
         self.occupancy_rate = occupancy_rate  # Fraction of seats occupied
+        self.speed_factor = speed_factor
         self.exits_lines = None
+        self.total_evacuate_time = None
         # Adjust seats per row for the first three rows
         for idx in range(rows):
             current_seats_per_row = 2 if idx < 3 else seats_per_row
@@ -152,54 +158,62 @@ class Plane:
 
         # The total evacuation time is the maximum time across all exits
         total_evacuate_time = max(evacuation_times_for_exits)
-
+        self.total_evacuate_time = total_evacuate_time
         return total_evacuate_time
 
 
     def draw_seatmap(self, color_mode):
         """
-        Draws the seatmap of the plane, showing passenger age, speed factor, evacuation time,
-        and nearest exit with a gradient color based on evacuation time.
-        Passengers with smaller 'order' values will be placed closer to their nearest exit.
+        Draws the seatmap of the plane, maintaining the original ordering but fixing empty seat visualization.
         """
-        fig, ax = plt.subplots(figsize=(12, len(self.rows) * 0.5))  # Dynamic height based on rows
+        fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(12, len(self.rows) * 0.5))
 
-        # Create a colormap for evacuation time (green to red)
-        cmap = plt.cm.RdYlGn_r  # Reverse colormap to go from green (low) to red (high)
+        # Set background colors
+        fig.patch.set_facecolor('white')
+        ax1.set_facecolor('white')
+        ax2.set_facecolor('white')
 
-        # Calculate min and max evacuation time for dynamic normalization
+        # Create colormap
+        cmap = plt.cm.RdYlGn_r
         evac_times = [seat.passenger.evacuation_time for row in self.rows for seat in row.seats if seat.passenger]
         min_evacuate_time = min(evac_times) if evac_times else 0
         max_evacuate_time = max(evac_times) if evac_times else 10
         norm = mcolors.Normalize(vmin=min_evacuate_time, vmax=max_evacuate_time)
 
-        # Collect all passengers sorted by order and their nearest exit
+        # Collect all passengers and their original locations
         all_passengers = []
+        passenger_locations = {}
         for row_idx, row in enumerate(self.rows):
             for seat_idx, seat in enumerate(row.seats):
                 if seat.passenger:
                     nearest_exit = min(self.exits, key=lambda exit_idx: abs(exit_idx - row_idx))
+                    passenger_locations[(row_idx, seat_idx)] = seat.passenger
                     all_passengers.append((seat.passenger.order, nearest_exit, row_idx, seat_idx, seat.passenger))
 
         # Sort passengers by their order and nearest exit
         all_passengers.sort(key=lambda x: (x[1], x[0]))  # Sort by exit, then by order
 
-        # Create a modified seat grid to rearrange passengers
+        # Create the modified seat grid while preserving empty seats
         modified_seat_grid = [[None for _ in range(len(row.seats))] for row in self.rows]
+        empty_seats = set()  # Track genuinely empty seats
 
-        # Place passengers in the grid
+        # First, mark all empty seats
+        for row_idx, row in enumerate(self.rows):
+            for seat_idx, seat in enumerate(row.seats):
+                if not seat.passenger:
+                    empty_seats.add((row_idx, seat_idx))
+
+        # Place sorted passengers in their new positions
         placed_passengers = set()
         for order, nearest_exit, orig_row, orig_seat, passenger in all_passengers:
-            # Find appropriate rows near the exit
             exit_rows = [row_idx for row_idx in range(len(self.rows))
                          if min(self.exits, key=lambda x: abs(x - row_idx)) == nearest_exit]
             exit_rows.sort(key=lambda row_idx: abs(row_idx - nearest_exit))
 
-            # Find an unoccupied seat in the appropriate rows
             placed = False
             for target_row_idx in exit_rows:
                 for seat_idx in range(len(self.rows[target_row_idx].seats)):
-                    if modified_seat_grid[target_row_idx][seat_idx] is None:
+                    if modified_seat_grid[target_row_idx][seat_idx] is None and (target_row_idx, seat_idx) not in empty_seats:
                         modified_seat_grid[target_row_idx][seat_idx] = passenger
                         placed = True
                         placed_passengers.add(passenger)
@@ -207,99 +221,70 @@ class Plane:
                 if placed:
                     break
 
-        # Loop through rows and seats to plot the seatmap
+        # Draw the seatmap
         for row_idx, row in enumerate(self.rows):
             for seat_idx, seat in enumerate(row.seats):
-                x, y = seat_idx, len(self.rows) - row_idx - 1  # Invert y-axis for top-left orientation
+                x, y = seat_idx, len(self.rows) - row_idx - 1
 
-                # Use the modified seat grid for passenger placement
-                passenger = modified_seat_grid[row_idx][seat_idx] if modified_seat_grid[row_idx][seat_idx] is not None else seat.passenger
+                for ax, mode in [(ax1, 'initial'), (ax2, 'final')]:
+                    if (row_idx, seat_idx) in empty_seats:
+                        # This is a genuinely empty seat
+                        ax.add_patch(plt.Rectangle((x, y), 1, 1, edgecolor='black', facecolor='white'))
+                        ax.text(x + 0.5, y + 0.5, "Empty", ha='center', va='center', fontsize=8, color='darkgray')
+                    else:
+                        # This is an occupied seat
+                        passenger = modified_seat_grid[row_idx][seat_idx]
+                        if passenger:
+                            evac_time = passenger.evacuation_time if mode == 'initial' else passenger.final_time
+                            facecolor = cmap(norm(evac_time))
 
-                if passenger:
-                    if color_mode == 'final':
-                        evac_time = passenger.final_time
-                    elif color_mode == 'initial':
-                        evac_time = passenger.evacuation_time
+                            ax.add_patch(plt.Rectangle((x, y), 1, 1, edgecolor='black', facecolor=facecolor))
 
-                    facecolor = cmap(norm(evac_time))  # Map evacuation time to color
+                            evac_time_text = f"{passenger.evacuation_time:.2f}"
+                            final_time_text = f"{passenger.final_time:.2f}"
+                            ax.text(x + 0.5, y + 0.5,
+                                    f"{passenger.age}\n{evac_time_text}\n{final_time_text}\n{passenger.order}->{passenger.exit_idx}",
+                                    ha='center', va='center', fontsize=8)
 
-                    # Dynamically assign exit based on proximity (distance from seat to exits)
-                    nearest_exit = min(self.exits, key=lambda exit_idx: abs(exit_idx - row_idx))
-                    exit_label = str(nearest_exit)  # Label with exit position
-                else:
-                    facecolor = 'white'  # Empty seat
-                    exit_label = ""  # No exit label for empty seats
-
-                # Draw seat as a rectangle
-                ax.add_patch(plt.Rectangle((x, y), 1, 1, edgecolor='black', facecolor=facecolor))
-
-                # Add text with evacuation time and age inside the rectangle
-                if passenger:
-                    age = passenger.age
-                    evac_time_text = f"{passenger.evacuation_time:.2f}"
-                    final_time_text = f"{passenger.final_time:.2f}"
-                    order = passenger.order
-                else:
-                    age = "Empty"
-                    evac_time_text = "-"
-                    final_time_text = "-"
-                    order = -1
-
-                ax.text(
-                    x + 0.5,
-                    y + 0.5,
-                    f"{age}\n{evac_time_text}\n{final_time_text}\n{str(order)} {exit_label}",
-                    ha='center',
-                    va='center',
-                    fontsize=8
-                )
-
-            # Highlight exits
-            for exit_idx in self.exits:
-                x, y = -1, len(self.rows) - exit_idx - 1  # Exit position at the left of each row
+        # Draw exits
+        for exit_idx in self.exits:
+            x, y = -1, len(self.rows) - exit_idx - 1
+            for ax in [ax1, ax2]:
                 ax.add_patch(plt.Rectangle((x, y), 1, 1, edgecolor='black', facecolor='green'))
                 ax.text(x + 0.5, y + 0.5, "EXIT", ha='center', va='center', fontsize=8, color='white')
 
         # Draw plane frame
-        max_seats_per_row = max(len(row.seats) for row in self.rows)
-        ax.add_patch(plt.Rectangle(
-            (-1, -1), max_seats_per_row + 2, len(self.rows) + 1, edgecolor='black', facecolor='none', linewidth=2
-        ))
+        max_seats = max(len(row.seats) for row in self.rows)
+        for ax in [ax1, ax2]:
+            ax.add_patch(plt.Rectangle((-1, -1), max_seats + 2, len(self.rows) + 1,
+                                       edgecolor='black', facecolor='none', linewidth=2))
+            ax.set_xlim(-2, max_seats + 1)
+            ax.set_ylim(-1, len(self.rows))
+            ax.set_aspect('equal')
+            ax.axis('off')
 
-        # Set axis limits and labels
-        ax.set_xlim(-2, max(len(row.seats) for row in self.rows) + 1)
-        ax.set_ylim(-1, len(self.rows))
-        ax.set_aspect('equal')
-        ax.axis('off')
+        # Add colorbars
+        for ax, label in [(ax1, 'Initial Evacuation Time (seconds)'),
+                          (ax2, 'Final Evacuation Time (seconds)')]:
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+            sm.set_array([])
+            cbar = plt.colorbar(sm, ax=ax, orientation='vertical', fraction=0.02, pad=0.04)
+            cbar.set_label(label)
 
-        # Add colorbar for evacuation time
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-        sm.set_array([])  # No data for ScalarMappable
-        cbar = plt.colorbar(sm, ax=ax, orientation='vertical', fraction=0.02, pad=0.04)
-        cbar.set_label('Evacuation Time (seconds)')
+        # Add parameters text
+        params_text = (
+            f"Total Time: {self.total_evacuate_time:.2f} seconds\n\n"
+            f"Proportion Old: {self.proportion_old * 100:.1f}%\n"
+            f"Old in First 3 Rows: {self.old_in_first_3_rows_prob * 100:.1f}%\n"
+            f"Speed Factor (First 3 Rows): {self.speed_factor:.2f}\n"
+            f"Door Opening Time: {self.door_opening_time:.2f} seconds\n"
+            f"Emergency Level: {self.emergency_level:.2f}\n"
+            f"Occupancy Rate: {self.occupancy_rate * 100:.1f}%"
+        )
 
-        # Title and show
-        plt.title("Plane Seatmap with Gradient Evacuation Time and Assigned Exits")
+        ax1.text(-8, len(self.rows) * 0.5, params_text,
+                 fontsize=12, ha='left', va='center',
+                 bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
+
         plt.tight_layout()
-        plt.show()# Assuming Plane, Row, and Passenger classes are defined as in your earlier setup
-# To use:
-rows = 30           # Number of rows in the plane
-seats_per_row = 3   # Seats per row (standard economy configuration)
-exits = [0, 15, 29] # Locations of exits (front, middle, back exits)
-speed_factor = 0.6  # First three rows move faster (80% of the normal time)
-door_opening_time = 2  # Time for middle exit door to open (2 seconds)
-num_simulations = 1000
-proportion_old = 0.3  # 30% old passengers
-old_in_first_3_rows_prob = 0.6  # 70% chance for old passengers to sit in the first 3 rows
-emergency_level = 0.9  # Emergency level: 0.0 (low) to 1.0 (high)
-occupancy_rate = 1  # 80% of seats are occupied
-
-plane = Plane(rows, seats_per_row, exits, speed_factor, door_opening_time, proportion_old,
-              old_in_first_3_rows_prob, emergency_level, occupancy_rate)
-plane.simulate_evacuation()
-# plane.rows[3].seats[1].passenger.age
-plane.draw_seatmap('initial')
-plane.draw_seatmap('final')
-
-for i in plane.exits_lines[0]:
-    print(i)
+        plt.show()
