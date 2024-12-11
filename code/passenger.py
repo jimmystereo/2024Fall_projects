@@ -65,7 +65,7 @@ class Passenger:
     def __init__(self, row_idx: int, row_speed_factor: float, exit_idx: int, age: str = "young", emergency_level: float = 1.0) -> None:
         """Initializes a Passenger object with evacuation-related characteristics.
 
-        Assigns random values for base time, panic level, and baggage delay.
+        Assigns random values for panic level, and baggage delay.
         Adjusts mobility based on age category and applies emergency level effects.
         Calculates initial evacuation time based on all factors.
         """
