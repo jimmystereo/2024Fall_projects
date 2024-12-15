@@ -15,5 +15,5 @@ Building on these insights, our team designed a Monte Carlo simulation to analyz
 3.	Mobility Constraints: Investigating the effect of passengers with mobility impairments and the role of crew assistance.
 By employing Monte Carlo methods, which rely on repeated random sampling and probabilistic modeling, our project aims to identify critical bottlenecks and propose optimized strategies to enhance evacuation efficiency and safety under diverse conditions.
 
-![img.png](Boeing737.png)
+![img.png](code/fig/Boeing737.png)
 Boeing 737 
