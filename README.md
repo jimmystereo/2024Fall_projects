@@ -23,40 +23,40 @@ Here are few factors we incorporated in our design.
 To simulate the real scenario, we referred to the real aircraft seat map.
 
 We picked Boeing 737, which is more commonly seen in the international airlines.
-![Boeing777_seat_map.png](Boeing777_seat_map.png)
+![Boeing777_seat_map.png](picture/Boeing777_seat_map.png)
 
 And A320
-![A320_seat_map.png](A320_seat_map.png)
+![A320_seat_map.png](picture/A320_seat_map.png)
 
 ## Assumptions and Simplification
-![img.png](Assumption.png)
+![img.png](picture/Assumption.png)
 
 ## Simulation Design - Variables
-![img.png](Config_v.png)
-![img.png](random_v.png)
+![img.png](picture/Config_v.png)
+![img.png](picture/random_v.png)
 
 ## Algorithm
-![img.png](formula.png)
-![img.png](simulation_viz.png)
-![img.png](simulation_strategy.png)
+![img.png](picture/formula.png)
+![img.png](picture/simulation_viz.png)
+![img.png](picture/simulation_strategy.png)
 
 ## Model Validation
 Simulation Outcome:
-![img.png](simulation_outcome.png)
+![img.png](picture/simulation_outcome.png)
 Convergence Verification:
-![img.png](convergence.png)
+![img.png](picture/convergence.png)
 
 ## Hypotheses and Test
 ### H1: Increased proportion of slow-moving passengers significantly extends evacuation time due to slower movement
-![img.png](H1.png)
+![img.png](picture/H1.png)
 ### H2: Higher seat occupancy leads to longer evacuation times due to congestion
-![img.png](H2.png)
+![img.png](picture/H2.png)
 ### H3: Larger aircraft (e.g., Boeing 777) require more evacuation time compared to smaller aircraft (e.g., A320)
-![img.png](sim_777.png)
-![img_1.png](H3.png)
+![img.png](picture/sim_777.png)
+![img_1.png](picture/H3.png)
 ### H4: With 25% of exits disabled (1 out of 4), the evacuation time will increase by more than 25%, indicating a non-linear relationship between exit availability and evacuation efficiency.
-![img.png](exit_availability.png)
-![img.png](H4.png)
+![img.png](picture/exit_availability.png)
+![img.png](picture/H4.png)
 
 ## Conclusion
 1. H1: Evacuation time increases significantly with the proportion of slow-moving passengers 
