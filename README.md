@@ -24,14 +24,21 @@ To simulate the real scenario, we referred to the real aircraft seat map.
 
 We picked Boeing 737, which is more commonly seen in the international airlines.
 ![Boeing777_seat_map.png](Boeing777_seat_map.png)
+
 And A320
 ![A320_seat_map.png](A320_seat_map.png)
 
-## Our Project Objective
-Building on these insights, our team designed a Monte Carlo simulation to analyze and model various factors that influence aircraft evacuation times and outcomes. Specifically, our simulation explores:
-1. The Impact of Exit Accessibility and Usage: Comparing scenarios with varied exit availability (e.g., using 3 vs. 8 exits).
-2. Mobility Constraints: Investigating the effect of passengers with mobility impairments and the role of crew assistance.
-By employing Monte Carlo methods, which rely on repeated random sampling and probabilistic modeling, our project aims to identify critical bottlenecks and propose optimized strategies to enhance evacuation efficiency and safety under diverse conditions.
+## Assumptions and Simplification
+![img.png](Assumption.png)
+
+## Simulation Design - Variables
+![img.png](Config_v.png)
+![img.png](random_v.png)
+
+## Algorithm
+![img.png](formula.png)
+![img.png](simulation_viz.png)
+![img.png](simulation_strategy.png)
 
 ![Boeing777](https://github.com/user-attachments/assets/67a4205f-7ff1-4052-8b99-44c072e09c7c)
 Boeing 737 
