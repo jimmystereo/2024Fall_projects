@@ -40,9 +40,41 @@ And A320
 ![img.png](simulation_viz.png)
 ![img.png](simulation_strategy.png)
 
-![Boeing777](https://github.com/user-attachments/assets/67a4205f-7ff1-4052-8b99-44c072e09c7c)
-Boeing 737 
+## Model Validation
+Simulation Outcome:
+![img.png](simulation_outcome.png)
+Convergence Verification:
+![img.png](convergence.png)
 
+## Hypotheses and Test
+### H1: Increased proportion of slow-moving passengers significantly extends evacuation time due to slower movement
+![img.png](H1.png)
+### H2: Higher seat occupancy leads to longer evacuation times due to congestion
+![img.png](H2.png)
+### H3: Larger aircraft (e.g., Boeing 777) require more evacuation time compared to smaller aircraft (e.g., A320)
+![img.png](sim_777.png)
+![img_1.png](H3.png)
+### H4: With 25% of exits disabled (1 out of 4), the evacuation time will increase by more than 25%, indicating a non-linear relationship between exit availability and evacuation efficiency.
+![img.png](exit_availability.png)
+![img.png](H4.png)
+
+## Conclusion
+1. H1: Evacuation time increases significantly with the proportion of slow-moving passengers 
+2. H2: Higher occupancy rates significantly impact evacuation time 
+3. H3:The evacuation time for the Boeing 777 is significantly longer than for
+the A320 
+4. H4: The rear exit is most critical for the A320's evacuation efficiency, as its
+failure leads to the largest increase in evacuation time (exceeding 25%) compared to other exit closures.
+
+## Future Work
+### Regarding Model Design
+1. Panic Spreed: Model how high panic levels in one passenger influence others nearby
+2. Crowd Dynamics: Include group evacuation dynamics
+3. Injured Passengers: Simulate scenarios where injured passengers are unable to evacuate independently
+4. Non-Compliant Behavior: Account for chaotic behaviors like climbing over seats, potentially causing delays
+### Regarding Simulation Real Scenario
+1. Refer to real time spent on each movement (e.g. door opening time), try to simulate real evacuation time more accurately. (Compare to [FAA 90 seconds rule](https://www.faa.gov/documentLibrary/media/Advisory_Circular/AC_25.803-1A.pdf))
+2. Include Crew Members' evacuation time
 
 ## References
 1. https://kth.diva-portal.org/smash/get/diva2:1885895/FULLTEXT01.pdf 
